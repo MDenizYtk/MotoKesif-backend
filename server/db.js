@@ -16,6 +16,39 @@ CREATE TABLE IF NOT EXISTS users (
   display_name TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS groups (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  invite_code TEXT UNIQUE NOT NULL,
+  creator_id TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS group_members (
+  group_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (group_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS group_messages (
+  id TEXT PRIMARY KEY,
+  group_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  text TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS group_shared_routes (
+  id TEXT PRIMARY KEY,
+  group_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  points TEXT NOT NULL,
+  distance_km REAL NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `);
 
 module.exports = db;
