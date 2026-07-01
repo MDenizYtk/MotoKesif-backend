@@ -56,4 +56,17 @@ router.get('/me', authMiddleware, (req, res) => {
   res.json({ user: publicUser(user) });
 });
 
+router.patch('/me', authMiddleware, (req, res) => {
+  const { displayName } = req.body || {};
+  if (!displayName || !displayName.trim()) {
+    return res.status(400).json({ error: 'İsim gerekli' });
+  }
+  db.prepare('UPDATE users SET display_name = ? WHERE id = ?').run(
+    displayName.trim(),
+    req.userId,
+  );
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
+  res.json({ user: publicUser(user) });
+});
+
 module.exports = router;
