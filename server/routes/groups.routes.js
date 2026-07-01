@@ -127,6 +127,10 @@ router.post('/:groupId/messages', requireMembership, (req, res) => {
        FROM group_messages gm JOIN users u ON u.id = gm.user_id WHERE gm.id = ?`,
     )
     .get(id);
+
+  const io = req.app.get('io');
+  if (io) io.to(`group:${req.group.id}`).emit('message:new', row);
+
   res.status(201).json({ message: row });
 });
 
