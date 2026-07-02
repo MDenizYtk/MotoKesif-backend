@@ -101,12 +101,14 @@ router.get('/:groupId', requireMembership, (req, res) => {
 router.get('/:groupId/messages', requireMembership, (req, res) => {
   const rows = db
     .prepare(
-      `SELECT gm.id, gm.text, gm.created_at as createdAt, gm.user_id as userId, u.display_name as displayName
-       FROM group_messages gm
-       JOIN users u ON u.id = gm.user_id
-       WHERE gm.group_id = ?
-       ORDER BY gm.created_at ASC
-       LIMIT 200`,
+      `SELECT id, text, createdAt, userId, displayName FROM (
+         SELECT gm.rowid as seq, gm.id, gm.text, gm.created_at as createdAt, gm.user_id as userId, u.display_name as displayName
+         FROM group_messages gm
+         JOIN users u ON u.id = gm.user_id
+         WHERE gm.group_id = ?
+         ORDER BY gm.rowid DESC
+         LIMIT 200
+       ) ORDER BY seq ASC`,
     )
     .all(req.group.id);
   res.json({ messages: rows });
@@ -152,13 +154,20 @@ router.get('/:groupId/routes', requireMembership, (req, res) => {
 
 router.post('/:groupId/routes', requireMembership, (req, res) => {
   const { name, points, distanceKm } = req.body || {};
-  if (!name || !Array.isArray(points) || points.length < 2) {
+  if (!name || !name.trim() || !Array.isArray(points) || points.length < 2) {
     return res.status(400).json({ error: 'Geçersiz rota verisi' });
   }
+  const validPoints = points.every(
+    p => p && Number.isFinite(Number(p.latitude ?? p.lat)) && Number.isFinite(Number(p.longitude ?? p.lng)),
+  );
+  if (!validPoints) {
+    return res.status(400).json({ error: 'Rota noktaları geçersiz' });
+  }
+  const distance = Number(distanceKm);
   const id = crypto.randomUUID();
   db.prepare(
     'INSERT INTO group_shared_routes (id, group_id, user_id, name, points, distance_km) VALUES (?, ?, ?, ?, ?, ?)',
-  ).run(id, req.group.id, req.userId, name.trim(), JSON.stringify(points), distanceKm || 0);
+  ).run(id, req.group.id, req.userId, name.trim(), JSON.stringify(points), Number.isFinite(distance) ? distance : 0);
   res.status(201).json({ id });
 });
 

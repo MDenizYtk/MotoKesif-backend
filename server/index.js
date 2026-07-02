@@ -17,6 +17,14 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/groups', groupsRoutes);
 
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Geçersiz JSON gövdesi' });
+  }
+  console.error(err);
+  res.status(500).json({ error: 'Sunucu hatası' });
+});
+
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 app.set('io', io);

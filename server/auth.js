@@ -1,6 +1,9 @@
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'motokesif-dev-secret-degistir';
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  console.warn('⚠️  JWT_SECRET ortam değişkeni ayarlanmamış! Üretimde mutlaka güçlü bir JWT_SECRET tanımlayın.');
+}
 
 function signToken(user) {
   return jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: '30d' });
