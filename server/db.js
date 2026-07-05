@@ -49,6 +49,25 @@ CREATE TABLE IF NOT EXISTS group_shared_routes (
   distance_km REAL NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS posts (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  text TEXT,
+  photo TEXT,
+  lat REAL,
+  lng REAL,
+  place_name TEXT,
+  route TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS post_likes (
+  post_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (post_id, user_id)
+);
 `);
 
 module.exports = db;
