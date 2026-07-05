@@ -117,4 +117,7 @@ CREATE TABLE IF NOT EXISTS live_shares (
 );
 `);
 
+// Geçişler (mevcut tablolara yeni kolonlar — kolon zaten varsa sessizce atlanır)
+try { db.exec("ALTER TABLE group_shared_routes ADD COLUMN profile TEXT DEFAULT 'car'"); } catch (_) {}
+
 module.exports = db;

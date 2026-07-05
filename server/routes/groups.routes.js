@@ -156,7 +156,7 @@ router.post('/:groupId/messages', requireMembership, (req, res) => {
 router.get('/:groupId/routes', requireMembership, (req, res) => {
   const rows = db
     .prepare(
-      `SELECT r.id, r.name, r.points, r.distance_km as distanceKm, r.created_at as createdAt,
+      `SELECT r.id, r.name, r.points, r.distance_km as distanceKm, r.profile, r.created_at as createdAt,
               r.user_id as userId, u.display_name as displayName
        FROM group_shared_routes r
        JOIN users u ON u.id = r.user_id
@@ -170,7 +170,7 @@ router.get('/:groupId/routes', requireMembership, (req, res) => {
 });
 
 router.post('/:groupId/routes', requireMembership, (req, res) => {
-  const { name, points, distanceKm } = req.body || {};
+  const { name, points, distanceKm, profile } = req.body || {};
   if (!name || !name.trim() || !Array.isArray(points) || points.length < 2) {
     return res.status(400).json({ error: 'Geçersiz rota verisi' });
   }
@@ -180,11 +180,13 @@ router.post('/:groupId/routes', requireMembership, (req, res) => {
   if (!validPoints) {
     return res.status(400).json({ error: 'Rota noktaları geçersiz' });
   }
+  // Rota profili: car/bike/foot — mod izolasyonu için (bilinmeyen değer → car)
+  const prof = ['car', 'bike', 'foot'].includes(profile) ? profile : 'car';
   const distance = Number(distanceKm);
   const id = crypto.randomUUID();
   db.prepare(
-    'INSERT INTO group_shared_routes (id, group_id, user_id, name, points, distance_km) VALUES (?, ?, ?, ?, ?, ?)',
-  ).run(id, req.group.id, req.userId, name.trim(), JSON.stringify(points), Number.isFinite(distance) ? distance : 0);
+    'INSERT INTO group_shared_routes (id, group_id, user_id, name, points, distance_km, profile) VALUES (?, ?, ?, ?, ?, ?, ?)',
+  ).run(id, req.group.id, req.userId, name.trim(), JSON.stringify(points), Number.isFinite(distance) ? distance : 0, prof);
   res.status(201).json({ id });
 });
 
