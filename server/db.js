@@ -68,6 +68,53 @@ CREATE TABLE IF NOT EXISTS post_likes (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (post_id, user_id)
 );
+
+CREATE TABLE IF NOT EXISTS hazards (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  lat REAL NOT NULL,
+  lng REAL NOT NULL,
+  note TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS events (
+  id TEXT PRIMARY KEY,
+  group_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  place_name TEXT,
+  lat REAL,
+  lng REAL,
+  when_ts TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS event_rsvps (
+  event_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  PRIMARY KEY (event_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS ride_scores (
+  id TEXT PRIMARY KEY,
+  group_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  max_lean REAL DEFAULT 0,
+  distance_km REAL DEFAULT 0,
+  max_speed REAL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS live_shares (
+  token TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  display_name TEXT,
+  lat REAL,
+  lng REAL,
+  updated_at TEXT
+);
 `);
 
 module.exports = db;

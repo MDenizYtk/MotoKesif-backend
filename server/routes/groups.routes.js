@@ -188,4 +188,52 @@ router.post('/:groupId/routes', requireMembership, (req, res) => {
   res.status(201).json({ id });
 });
 
+// ---- Etkinlikler ----
+router.get('/:groupId/events', requireMembership, (req, res) => {
+  const rows = db
+    .prepare(
+      `SELECT e.id, e.title, e.place_name AS placeName, e.lat, e.lng, e.when_ts AS whenTs,
+              e.user_id AS userId, u.display_name AS displayName,
+              (SELECT COUNT(*) FROM event_rsvps r WHERE r.event_id = e.id) AS going,
+              EXISTS(SELECT 1 FROM event_rsvps r WHERE r.event_id = e.id AND r.user_id = ?) AS mine
+       FROM events e JOIN users u ON u.id = e.user_id
+       WHERE e.group_id = ? ORDER BY COALESCE(e.when_ts, e.created_at) ASC`,
+    )
+    .all(req.userId, req.group.id);
+  res.json({ events: rows.map((r) => ({ ...r, mine: !!r.mine })) });
+});
+
+router.post('/:groupId/events', requireMembership, (req, res) => {
+  const { title, placeName, lat, lng, when } = req.body || {};
+  if (!title || !String(title).trim()) return res.status(400).json({ error: 'Başlık gerekli' });
+  const id = crypto.randomUUID();
+  db.prepare(
+    'INSERT INTO events (id, group_id, user_id, title, place_name, lat, lng, when_ts) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+  ).run(id, req.group.id, req.userId, String(title).trim(), placeName || null,
+    Number.isFinite(lat) ? lat : null, Number.isFinite(lng) ? lng : null, when || null);
+  res.status(201).json({ id });
+});
+
+// ---- Lider tablosu ----
+router.post('/:groupId/scores', requireMembership, (req, res) => {
+  const { maxLean, distanceKm, maxSpeed } = req.body || {};
+  db.prepare(
+    'INSERT INTO ride_scores (id, group_id, user_id, max_lean, distance_km, max_speed) VALUES (?, ?, ?, ?, ?, ?)',
+  ).run(crypto.randomUUID(), req.group.id, req.userId, Number(maxLean) || 0, Number(distanceKm) || 0, Number(maxSpeed) || 0);
+  res.status(201).json({ ok: true });
+});
+
+router.get('/:groupId/leaderboard', requireMembership, (req, res) => {
+  const rows = db
+    .prepare(
+      `SELECT u.id AS userId, u.display_name AS displayName,
+              MAX(s.max_lean) AS maxLean, MAX(s.distance_km) AS maxDistance, MAX(s.max_speed) AS maxSpeed
+       FROM ride_scores s JOIN users u ON u.id = s.user_id
+       WHERE s.group_id = ?
+       GROUP BY s.user_id ORDER BY maxLean DESC LIMIT 100`,
+    )
+    .all(req.group.id);
+  res.json({ leaderboard: rows });
+});
+
 module.exports = router;
