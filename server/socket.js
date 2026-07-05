@@ -31,6 +31,24 @@ function setupSocket(io) {
     socket.on('group:leave', ({ groupId }) => {
       if (groupId) socket.leave(`group:${groupId}`);
     });
+
+    // Canlı grup sürüşü — konumu grup odasına yayınla
+    socket.on('loc:update', ({ groupId, lat, lng, speed, heading }) => {
+      if (!groupId || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      if (!isMember(groupId, socket.userId)) return;
+      socket.to(`group:${groupId}`).emit('loc:peer', {
+        userId: socket.userId, lat, lng, speed, heading, at: Date.now(),
+      });
+    });
+
+    // Bağlantı koparken gruplardaki arkadaşlara haber ver
+    socket.on('disconnecting', () => {
+      for (const room of socket.rooms) {
+        if (typeof room === 'string' && room.startsWith('group:')) {
+          socket.to(room).emit('peer:gone', { userId: socket.userId });
+        }
+      }
+    });
   });
 }
 
