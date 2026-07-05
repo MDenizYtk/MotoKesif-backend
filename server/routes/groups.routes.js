@@ -98,6 +98,23 @@ router.get('/:groupId', requireMembership, (req, res) => {
   res.json({ group: publicGroup(req.group), members });
 });
 
+router.post('/:groupId/leave', requireMembership, (req, res) => {
+  db.prepare('DELETE FROM group_members WHERE group_id = ? AND user_id = ?').run(
+    req.group.id,
+    req.userId,
+  );
+  // Üye kalmadıysa grubu ve içeriğini temizle
+  const remaining = db
+    .prepare('SELECT COUNT(*) AS n FROM group_members WHERE group_id = ?')
+    .get(req.group.id).n;
+  if (remaining === 0) {
+    db.prepare('DELETE FROM group_messages WHERE group_id = ?').run(req.group.id);
+    db.prepare('DELETE FROM group_shared_routes WHERE group_id = ?').run(req.group.id);
+    db.prepare('DELETE FROM groups WHERE id = ?').run(req.group.id);
+  }
+  res.json({ ok: true });
+});
+
 router.get('/:groupId/messages', requireMembership, (req, res) => {
   const rows = db
     .prepare(
