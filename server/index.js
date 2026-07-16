@@ -8,9 +8,11 @@ const postsRoutes = require('./routes/posts.routes');
 const hazardsRoutes = require('./routes/hazards.routes');
 const eventsRoutes = require('./routes/events.routes');
 const shareRoutes = require('./routes/share.routes');
+const adminRoutes = require('./routes/admin.routes');
 const db = require('./db');
 const { setupSocket } = require('./socket');
 const { sharePageHtml } = require('./sharepage');
+const { adminPageHtml } = require('./adminpage');
 
 const app = express();
 app.use(cors());
@@ -26,6 +28,12 @@ app.use('/api/posts', postsRoutes);
 app.use('/api/hazards', hazardsRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/share', shareRoutes);
+app.use('/api/admin', adminRoutes);
+
+// Yönetici paneli (giriş anahtarı ADMIN_KEY — /opt/motokesif/admin.key)
+app.get('/admin', (req, res) => {
+  res.type('html').send(adminPageHtml());
+});
 
 // Herkese açık canlı konum (aile takip linki için, auth yok)
 app.get('/api/public/share/:token', (req, res) => {
