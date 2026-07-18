@@ -48,6 +48,31 @@ router.get('/', (req, res) => {
   res.json({ groups: rows.map(publicGroup) });
 });
 
+// Keşfet: TÜM gruplar herkese görünür, davet kodu gerekmeden katılınabilir.
+// ('/:groupId' rotalarından ÖNCE tanımlı olmalı.)
+router.get('/all', (req, res) => {
+  const rows = db
+    .prepare(
+      `SELECT g.id, g.name, g.created_at AS createdAt,
+              u.display_name AS creatorName,
+              (SELECT COUNT(*) FROM group_members m WHERE m.group_id = g.id) AS memberCount,
+              EXISTS(SELECT 1 FROM group_members m2 WHERE m2.group_id = g.id AND m2.user_id = ?) AS joined
+       FROM groups g LEFT JOIN users u ON u.id = g.creator_id
+       ORDER BY memberCount DESC, g.created_at DESC LIMIT 200`,
+    )
+    .all(req.userId);
+  res.json({ groups: rows.map((r) => ({ ...r, joined: !!r.joined })) });
+});
+
+// Kodsuz katılım: grup kimliğiyle tek dokunuş
+router.post('/:groupId/join', (req, res) => {
+  const group = db.prepare('SELECT * FROM groups WHERE id = ?').get(req.params.groupId);
+  if (!group) return res.status(404).json({ error: 'Grup bulunamadı' });
+  if (isMember(group.id, req.userId)) return res.json({ group: publicGroup(group), already: true });
+  db.prepare('INSERT INTO group_members (group_id, user_id) VALUES (?, ?)').run(group.id, req.userId);
+  res.json({ group: publicGroup(group) });
+});
+
 router.post('/', (req, res) => {
   const { name } = req.body || {};
   if (!name || !name.trim()) {
